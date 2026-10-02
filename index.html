@@ -49,6 +49,35 @@ button{font:inherit;color:var(--ink);background:transparent;border:1px solid var
 .status{margin-top:10px;font-size:11px;color:var(--mute);text-align:center;min-height:1.3em}
 .status.err{color:#ff7b6b}
 
+/* view switch */
+.top{gap:8px}
+.seg{display:flex;margin-left:auto}
+.seg button{border-radius:0;padding:4px 10px;font-size:13px;color:var(--mute)}
+.seg button:first-child{border-radius:8px 0 0 8px}
+.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.vfocus{flex:1;display:flex;flex-direction:column}
+
+/* day view */
+.dayv{flex:1;display:flex;flex-direction:column;padding-top:14px}
+.dlist{display:flex;flex-direction:column;gap:10px;flex:1}
+.drow{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start}
+.drow .tm{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;padding-top:12px;line-height:1.3}
+.dcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.drow.fixed .dcard{background:transparent;border-style:dashed}
+.drow.now .dcard{border:2px solid var(--fv)}
+.drow.now .tm{color:var(--fv);font-weight:700}
+.drow.past{opacity:.55}
+.dcard .nm{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mute)}
+.drow.now .dcard .nm{color:var(--fv);font-weight:700}
+.dcard .tk{font-size:17px;font-weight:700;margin-top:3px;word-break:keep-all;overflow-wrap:anywhere}
+.dcard .tk.empty{font-weight:400;color:var(--mute);font-size:14px}
+.dcard.done .tk{text-decoration:line-through;color:var(--mute)}
+.dcard .mm{font-size:13px;color:#aab3bd;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.dsw{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px;font-size:12px;color:var(--mute)}
+.dsw button{width:26px;height:26px;padding:0;border-radius:50%;border:2px solid transparent}
+.dsw button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+
 /* settings */
 .sheet{position:fixed;inset:0;z-index:5;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 24px)}
 .sheet h1{font-size:22px;margin:0 0 6px}
@@ -69,13 +98,16 @@ button{font:inherit;color:var(--ink);background:transparent;border:1px solid var
 <main class="app" id="app">
   <div class="top">
     <span id="date"></span>
+    <span class="seg" id="seg"><button data-v="focus" class="on">집중</button><button data-v="day">하루</button></span>
     <span class="icons">
+      <button id="fsBtn" title="전체 화면" aria-label="전체 화면">⛶</button>
       <button id="wakeBtn" title="화면 켜두기" aria-label="화면 켜두기">☀︎</button>
       <button id="refreshBtn" title="새로고침" aria-label="새로고침">↻</button>
       <button id="setBtn" title="설정" aria-label="설정">⚙︎</button>
     </span>
   </div>
 
+  <div id="vFocus" class="vfocus">
   <section class="focus">
     <div class="name" id="name"></div>
     <div class="clock" id="clock">--:--</div>
@@ -86,6 +118,18 @@ button{font:inherit;color:var(--ink);background:transparent;border:1px solid var
   </section>
 
   <section class="strip" id="strip"></section>
+  </div>
+
+  <section class="dayv" id="vDay" hidden>
+    <div class="dlist" id="dlist"></div>
+    <div class="dsw" id="dsw"><span>집중 색</span>
+      <button data-c="#ffffff" style="background:#ffffff" aria-label="흰색"></button>
+      <button data-c="#ff9f43" style="background:#ff9f43" aria-label="주황"></button>
+      <button data-c="#ffd84d" style="background:#ffd84d" aria-label="노랑"></button>
+      <button data-c="#6ec9ff" style="background:#6ec9ff" aria-label="하늘"></button>
+      <button data-c="#8be28b" style="background:#8be28b" aria-label="연두"></button>
+    </div>
+  </section>
   <div class="status" id="status"></div>
 </main>
 
@@ -136,7 +180,7 @@ function todayStr(){ const t = new Date(); t.setMinutes(t.getMinutes() - t.getTi
 const hm = min => String(Math.floor(min/60)).padStart(2,'0') + ':' + String(Math.floor(min%60)).padStart(2,'0');
 function fmtRemain(min){ const m = Math.max(1, Math.ceil(min)), h = Math.floor(m/60), r = m % 60; return [h ? h + '시간' : '', r || !h ? r + '분' : ''].filter(Boolean).join(' ') + ' 남음'; }
 function setStatus(t, err){ const el = $('#status'); el.textContent = t; el.classList.toggle('err', !!err); }
-function applyColor(){ document.documentElement.style.setProperty('--fv', cfg.color); document.querySelectorAll('#sw button').forEach(b => b.classList.toggle('on', b.dataset.c === cfg.color)); }
+function applyColor(){ document.documentElement.style.setProperty('--fv', cfg.color); document.querySelectorAll('#sw button, #dsw button').forEach(b => b.classList.toggle('on', b.dataset.c === cfg.color)); }
 
 async function fetchDay(force){
   if (demo) return;
@@ -182,6 +226,7 @@ function render(){
     if (next) { const g = (v[next.id + '_goal'] || '').trim(); task.textContent = '다음 · ' + hm(next.s) + ' ' + next.name + (g ? '\n' + g : ''); task.classList.add('empty'); task.style.whiteSpace = 'pre-line'; }
     else { const done = ['b1','b2','b3'].filter(k => v[k + '_done']).length; task.textContent = '오늘 완료 ' + done + ' / 3 블록'; task.classList.add('empty'); }
   }
+  if (typeof renderDay === 'function' && view === 'day') renderDay();
   $('#strip').innerHTML = SCHED.filter(b => b.id).map(b => {
     const g = v[b.id + '_goal'] || '', done = !!v[b.id + '_done'], now = cur && cur.id === b.id;
     return '<div class="blk ' + (now ? 'now ' : '') + (done ? 'done' : '') + '"><div class="t">' + hm(b.s) + (done ? '<span class="ck">✓</span>' : '') + '</div><div class="g"></div></div>';
@@ -201,6 +246,57 @@ async function setWake(on){
 }
 $('#wakeBtn').onclick = () => setWake(!wakeWanted);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (wakeWanted && !wake) setWake(true); fetchDay(true); } });
+
+// full screen (hides browser bars and the status bar where supported)
+const fsEl = document.documentElement;
+const canFs = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+if (!canFs) $('#fsBtn').hidden = true;
+$('#fsBtn').onclick = async () => {
+  try {
+    if (isFs()) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else await (fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl, {navigationUI: 'hide'});
+  } catch(e) { setStatus('이 브라우저는 전체 화면을 지원하지 않아요 · 홈 화면에 추가해서 열어 주세요', true); }
+};
+const fsSync = () => $('#fsBtn').classList.toggle('on', isFs());
+document.addEventListener('fullscreenchange', fsSync);
+document.addEventListener('webkitfullscreenchange', fsSync);
+
+// ---- day view: whole schedule with tasks ----
+const escH = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderDay(){
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60, v = day || {};
+  $('#dlist').innerHTML = SCHED.map(b => {
+    const now = m >= b.s && m < b.e, past = m >= b.e;
+    let body;
+    if (b.id) {
+      const g = (v[b.id + '_goal'] || '').trim(), memo = (v[b.id + '_memo'] || '').trim(), done = !!v[b.id + '_done'];
+      body = '<div class="dcard' + (done ? ' done' : '') + '"><div class="nm"><span>' + escH(b.name) + '</span><span>' + (now ? fmtRemain(b.e - m) : '') + (done ? ' ✓' : '') + '</span></div>'
+        + '<div class="tk' + (g ? '' : ' empty') + '">' + (g ? escH(g) : '할 일 없음') + '</div>' + (memo ? '<div class="mm">' + escH(memo) + '</div>' : '') + '</div>';
+    } else {
+      const note = b.name === '무인카페' ? (v.reading || '').trim() : '';
+      body = '<div class="dcard"><div class="nm"><span>' + escH(b.name) + '</span><span>' + (now ? fmtRemain(b.e - m) : '') + '</span></div>' + (note ? '<div class="mm">' + escH(note) + '</div>' : '') + '</div>';
+    }
+    return '<div class="drow ' + (b.id ? '' : 'fixed ') + (now ? 'now ' : '') + (past && !now ? 'past' : '') + '"><div class="tm">' + hm(b.s) + '<br>' + hm(b.e) + '</div>' + body + '</div>';
+  }).join('');
+}
+var view = read('focus:view', 'focus');
+function setView(v){
+  view = v; write('focus:view', v);
+  $('#vFocus').hidden = v !== 'focus'; $('#vDay').hidden = v !== 'day';
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (v === 'day') renderDay();
+}
+$('#seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('#dsw').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cfg.color = b.dataset.c; write('focus:cfg', cfg); applyColor(); });
+// swipe left/right to switch
+var tx = null, ty = null;
+document.addEventListener('touchstart', e => { if (!$('#settings').hidden) return; tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend', e => {
+  if (tx == null) return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) setView(dx < 0 ? 'day' : 'focus');
+}, {passive:true});
 
 // settings
 function openSettings(){
@@ -232,6 +328,7 @@ $('#demoBtn').onclick = () => {
 $('#refreshBtn').onclick = () => fetchDay(true);
 
 applyColor();
+setView(view);
 if (wakeWanted) $('#wakeBtn').classList.add('on');
 render();
 if (!cfg.repo || !cfg.token) openSettings(); else fetchDay(true);
