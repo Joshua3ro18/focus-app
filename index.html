@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Focus</title>
+<style>
+:root{--fv:#ffffff;--bg:#0e1318;--ink:#f1f4f6;--mute:#8d97a3;--line:#2a333c;--card:#161d24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
+body{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+
+/* main */
+.app{min-height:100%;display:flex;flex-direction:column;padding:18px 20px 22px}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mute)}
+.top .icons{display:flex;gap:6px}
+.top .icons button{border:0;padding:6px;font-size:18px;line-height:1;color:var(--mute)}
+.top .icons button.on{color:var(--fv)}
+.focus{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(10px,2.4vh,22px);padding:12px 0}
+.name{font-size:clamp(15px,4.2vw,20px);font-weight:600;color:var(--fv)}
+.clock{font-size:clamp(76px,26vw,150px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;font-family:"Helvetica Neue",Arial,sans-serif;letter-spacing:.02em}
+.task{font-size:clamp(24px,7.4vw,40px);font-weight:700;line-height:1.3;word-break:keep-all;max-width:92vw}
+.task.empty{font-size:clamp(16px,4.6vw,22px);font-weight:400;color:var(--mute)}
+.task.done{color:var(--mute);text-decoration:line-through}
+.memo{font-size:clamp(14px,3.8vw,17px);color:#aab3bd;white-space:pre-wrap;max-width:88vw;max-height:20vh;overflow:hidden}
+.remain{font-size:clamp(16px,4.6vw,22px);font-weight:600;color:var(--fv)}
+.bar{width:min(520px,80vw);height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar b{display:block;height:100%;width:0;background:var(--fv);transition:width 1s linear}
+
+/* today strip */
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.blk{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.blk.now{border-color:var(--fv)}
+.blk .t{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums}
+.blk .g{font-size:13px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk.done .g{color:var(--mute);text-decoration:line-through}
+.blk .ck{float:right;font-size:12px;color:var(--fv)}
+.status{margin-top:10px;font-size:11px;color:var(--mute);text-align:center;min-height:1.3em}
+.status.err{color:#ff7b6b}
+
+/* settings */
+.sheet{position:fixed;inset:0;z-index:5;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 24px)}
+.sheet h1{font-size:22px;margin:0 0 6px}
+.sheet p{font-size:13px;color:var(--mute);line-height:1.55;margin:0 0 16px}
+.sheet label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px}
+.sheet input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.sheet input:focus{outline:none;border-color:var(--fv)}
+.sw{display:flex;gap:14px;margin-top:6px}
+.sw button{width:34px;height:34px;padding:0;border-radius:50%;border:2px solid transparent}
+.sw button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.row{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+.row .primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.msg{font-size:13px;margin-top:12px;min-height:1.4em}
+.msg.err{color:#ff7b6b}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <div class="top">
+    <span id="date"></span>
+    <span class="icons">
+      <button id="wakeBtn" title="화면 켜두기" aria-label="화면 켜두기">☀︎</button>
+      <button id="refreshBtn" title="새로고침" aria-label="새로고침">↻</button>
+      <button id="setBtn" title="설정" aria-label="설정">⚙︎</button>
+    </span>
+  </div>
+
+  <section class="focus">
+    <div class="name" id="name"></div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="task" id="task"></div>
+    <div class="memo" id="memo"></div>
+    <div class="remain" id="remain"></div>
+    <div class="bar" id="barWrap"><b id="bar"></b></div>
+  </section>
+
+  <section class="strip" id="strip"></section>
+  <div class="status" id="status"></div>
+</main>
+
+<section class="sheet" id="settings" hidden>
+  <h1>Focus 설정</h1>
+  <p>PC 타임블록이 GitHub에 저장한 오늘 기록을 읽어 와서 보여줘요. 토큰은 이 휴대폰에만 저장돼요. 기록 저장소 하나만 선택하고 Contents 권한을 <b>Read-only</b>로 준 토큰을 쓰세요.</p>
+  <label for="repo">기록 저장소 (owner/repo)</label>
+  <input id="repo" placeholder="예: myname/timeblock-data" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <label for="branch">브랜치</label>
+  <input id="branch" value="main" autocapitalize="off" spellcheck="false">
+  <label for="dir">폴더</label>
+  <input id="dir" value="records" autocapitalize="off" spellcheck="false">
+  <label for="token">읽기 전용 토큰</label>
+  <input id="token" type="password" placeholder="github_pat_..." autocomplete="off">
+  <label>집중 색</label>
+  <div class="sw" id="sw">
+    <button data-c="#ffffff" style="background:#ffffff" aria-label="흰색"></button>
+    <button data-c="#ff9f43" style="background:#ff9f43" aria-label="주황"></button>
+    <button data-c="#ffd84d" style="background:#ffd84d" aria-label="노랑"></button>
+    <button data-c="#6ec9ff" style="background:#6ec9ff" aria-label="하늘"></button>
+    <button data-c="#8be28b" style="background:#8be28b" aria-label="연두"></button>
+  </div>
+  <div class="row">
+    <button class="primary" id="saveBtn">저장하고 연결</button>
+    <button id="demoBtn">예시로 둘러보기</button>
+    <button id="closeBtn">닫기</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const DOW = ['일','월','화','수','목','금','토'];
+// same schedule as the PC Time Block
+const SCHED = [
+  {s:300, e:420, name:'무인카페', kind:'fixed'},
+  {s:480, e:660, name:'오전 블록', id:'b1'},
+  {s:660, e:720, name:'점심', kind:'fixed'},
+  {s:720, e:900, name:'오후 블록 1', id:'b2'},
+  {s:930, e:1050, name:'오후 블록 2', id:'b3'}
+];
+const read = (k, f) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? f : v; } catch(e){ return f; } };
+const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+var cfg = Object.assign({repo:'', branch:'main', dir:'records', token:'', color:'#ffffff'}, read('focus:cfg', {}));
+var day = null, dayDate = '', demo = false, lastFetch = 0, wake = null, wakeWanted = read('focus:wake', false);
+
+function todayStr(){ const t = new Date(); t.setMinutes(t.getMinutes() - t.getTimezoneOffset()); return t.toISOString().slice(0,10); }
+const hm = min => String(Math.floor(min/60)).padStart(2,'0') + ':' + String(Math.floor(min%60)).padStart(2,'0');
+function fmtRemain(min){ const m = Math.max(1, Math.ceil(min)), h = Math.floor(m/60), r = m % 60; return [h ? h + '시간' : '', r || !h ? r + '분' : ''].filter(Boolean).join(' ') + ' 남음'; }
+function setStatus(t, err){ const el = $('#status'); el.textContent = t; el.classList.toggle('err', !!err); }
+function applyColor(){ document.documentElement.style.setProperty('--fv', cfg.color); document.querySelectorAll('#sw button').forEach(b => b.classList.toggle('on', b.dataset.c === cfg.color)); }
+
+async function fetchDay(force){
+  if (demo) return;
+  if (!cfg.repo || !cfg.token) { openSettings(); return; }
+  const d = todayStr();
+  if (!force && d === dayDate && Date.now() - lastFetch < 55000) return;
+  try {
+    const url = 'https://api.github.com/repos/' + cfg.repo + '/contents/' + cfg.dir.replace(/^\/+|\/+$/g,'') + '/' + d + '.json?ref=' + encodeURIComponent(cfg.branch);
+    const r = await fetch(url, {cache:'no-store', headers:{Authorization:'Bearer ' + cfg.token, Accept:'application/vnd.github.raw+json', 'X-GitHub-Api-Version':'2022-11-28'}});
+    lastFetch = Date.now();
+    if (r.status === 404) { day = {}; dayDate = d; setStatus('오늘 기록이 아직 없어요 · PC 타임블록에서 입력하면 1분 안에 보여요'); render(); return; }
+    if (r.status === 401) throw new Error('토큰이 올바르지 않거나 만료됐어요');
+    if (!r.ok) throw new Error('불러오기 실패 (' + r.status + ')');
+    day = await r.json(); dayDate = d;
+    setStatus('업데이트 ' + hm(new Date().getHours()*60 + new Date().getMinutes()));
+    render();
+  } catch(e) {
+    setStatus((e instanceof TypeError ? '인터넷 연결을 확인해 주세요' : e.message) + (day ? ' · 마지막 기록을 보여주는 중' : ''), true);
+  }
+}
+
+function render(){
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
+  $('#date').textContent = (n.getMonth()+1) + '월 ' + n.getDate() + '일 ' + DOW[n.getDay()] + '요일';
+  $('#clock').textContent = hm(n.getHours()*60 + n.getMinutes());
+  const v = day || {};
+  const cur = SCHED.find(b => m >= b.s && m < b.e);
+  const next = SCHED.find(b => b.id && b.s > m);
+  const task = $('#task'), memo = $('#memo');
+  task.className = 'task'; task.style.whiteSpace = ''; memo.textContent = '';
+  if (cur && cur.id) {
+    const goal = (v[cur.id + '_goal'] || '').trim(), done = !!v[cur.id + '_done'];
+    $('#name').textContent = cur.name + ' · ' + hm(cur.s) + ' – ' + hm(cur.e);
+    task.textContent = goal || '이 블록의 할 일이 비어 있어요';
+    if (!goal) task.classList.add('empty'); else if (done) task.classList.add('done');
+    memo.textContent = (v[cur.id + '_memo'] || '').trim();
+    $('#remain').textContent = done ? '완료 ✓ · ' + fmtRemain(cur.e - m) : fmtRemain(cur.e - m);
+    $('#bar').style.width = ((m - cur.s) / (cur.e - cur.s) * 100) + '%'; $('#barWrap').hidden = false;
+  } else {
+    $('#barWrap').hidden = true;
+    if (cur) { $('#name').textContent = cur.name + ' · ' + hm(cur.s) + ' – ' + hm(cur.e); $('#remain').textContent = fmtRemain(cur.e - m); }
+    else { $('#name').textContent = next ? '쉬는 시간' : '오늘 업무 블록 끝'; $('#remain').textContent = ''; }
+    if (next) { const g = (v[next.id + '_goal'] || '').trim(); task.textContent = '다음 · ' + hm(next.s) + ' ' + next.name + (g ? '\n' + g : ''); task.classList.add('empty'); task.style.whiteSpace = 'pre-line'; }
+    else { const done = ['b1','b2','b3'].filter(k => v[k + '_done']).length; task.textContent = '오늘 완료 ' + done + ' / 3 블록'; task.classList.add('empty'); }
+  }
+  $('#strip').innerHTML = SCHED.filter(b => b.id).map(b => {
+    const g = v[b.id + '_goal'] || '', done = !!v[b.id + '_done'], now = cur && cur.id === b.id;
+    return '<div class="blk ' + (now ? 'now ' : '') + (done ? 'done' : '') + '"><div class="t">' + hm(b.s) + (done ? '<span class="ck">✓</span>' : '') + '</div><div class="g"></div></div>';
+  }).join('');
+  document.querySelectorAll('#strip .g').forEach((el, i) => { const id = ['b1','b2','b3'][i]; el.textContent = v[id + '_goal'] || '—'; });
+}
+
+// wake lock (keep screen on while viewing)
+async function setWake(on){
+  wakeWanted = on; write('focus:wake', on);
+  $('#wakeBtn').classList.toggle('on', on);
+  try {
+    if (on && 'wakeLock' in navigator) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    else if (wake) { await wake.release(); wake = null; }
+    if (on && !('wakeLock' in navigator)) setStatus('이 브라우저는 화면 켜두기를 지원하지 않아요', true);
+  } catch(e) {}
+}
+$('#wakeBtn').onclick = () => setWake(!wakeWanted);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (wakeWanted && !wake) setWake(true); fetchDay(true); } });
+
+// settings
+function openSettings(){
+  $('#repo').value = cfg.repo; $('#branch').value = cfg.branch; $('#dir').value = cfg.dir; $('#token').value = cfg.token;
+  $('#settings').hidden = false; $('#msg').textContent = '';
+}
+$('#setBtn').onclick = openSettings;
+$('#closeBtn').onclick = () => { if (cfg.repo && cfg.token || demo) $('#settings').hidden = true; else $('#msg').textContent = '저장소와 토큰을 넣거나 예시로 둘러보기를 눌러 주세요'; };
+$('#sw').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cfg.color = b.dataset.c; write('focus:cfg', cfg); applyColor(); });
+$('#saveBtn').onclick = async () => {
+  cfg.repo = $('#repo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/$/,'');
+  cfg.branch = $('#branch').value.trim() || 'main'; cfg.dir = $('#dir').value.trim() || 'records'; cfg.token = $('#token').value.trim();
+  const msg = $('#msg'); msg.className = 'msg';
+  if (!cfg.repo || !cfg.token) { msg.textContent = '저장소와 토큰을 모두 입력해 주세요'; msg.className = 'msg err'; return; }
+  msg.textContent = '확인 중…';
+  try {
+    const r = await fetch('https://api.github.com/repos/' + cfg.repo, {cache:'no-store', headers:{Authorization:'Bearer ' + cfg.token, Accept:'application/vnd.github+json'}});
+    if (r.status === 404) throw new Error('저장소를 찾을 수 없어요. 이름과 토큰의 저장소 선택을 확인해 주세요');
+    if (r.status === 401) throw new Error('토큰이 올바르지 않거나 만료됐어요');
+    if (!r.ok) throw new Error('연결 실패 (' + r.status + ')');
+    write('focus:cfg', cfg); demo = false; $('#settings').hidden = true; await fetchDay(true);
+  } catch(e) { msg.textContent = e instanceof TypeError ? '인터넷 연결을 확인해 주세요' : e.message; msg.className = 'msg err'; }
+};
+$('#demoBtn').onclick = () => {
+  demo = true; $('#settings').hidden = true;
+  day = {b1_goal:'롱폼 본문 작성', b1_memo:'인덱스 3번까지', b1_done:false, b2_goal:'숏폼 2개 촬영·업로드', b3_goal:'홈짐 시장조사 정리', b2_done:false};
+  setStatus('예시 화면이에요 · 설정에서 저장소를 연결하면 실제 기록이 보여요'); render();
+};
+$('#refreshBtn').onclick = () => fetchDay(true);
+
+applyColor();
+if (wakeWanted) $('#wakeBtn').classList.add('on');
+render();
+if (!cfg.repo || !cfg.token) openSettings(); else fetchDay(true);
+setInterval(() => { render(); fetchDay(false); }, 1000);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
