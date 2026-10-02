@@ -140,7 +140,7 @@ function applyColor(){ document.documentElement.style.setProperty('--fv', cfg.co
 
 async function fetchDay(force){
   if (demo) return;
-  if (!cfg.repo || !cfg.token) { openSettings(); return; }
+  if (!cfg.repo || !cfg.token) { if ($('#settings').hidden) openSettings(); return; }
   const d = todayStr();
   if (!force && d === dayDate && Date.now() - lastFetch < 55000) return;
   try {
