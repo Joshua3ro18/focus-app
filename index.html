@@ -205,6 +205,18 @@ function fmtRemain(min){ const m = Math.max(1, Math.ceil(min)), h = Math.floor(m
 function setStatus(t, err){ const el = $('#status'); el.textContent = t; el.classList.toggle('err', !!err); }
 function applyColor(){ document.documentElement.style.setProperty('--fv', cfg.color); document.querySelectorAll('#sw button, #dsw button').forEach(b => b.classList.toggle('on', b.dataset.c === cfg.color)); }
 
+// when today's file is missing, say how stale GitHub is so the cause is obvious
+async function whyMissing(d){
+  try {
+    const url = 'https://api.github.com/repos/' + cfg.repo + '/contents/' + cfg.dir.replace(/^\/+|\/+$/g,'') + '?ref=' + encodeURIComponent(cfg.branch);
+    const r = await fetch(url, {cache:'no-store', headers:{Authorization:'Bearer ' + cfg.token, Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'}});
+    if (!r.ok) return '오늘 기록이 없어요 · GitHub에서 기록 폴더를 못 읽었어요 (' + r.status + ') · 휴대폰 토큰에 Contents 권한이 있는지 확인해 주세요';
+    const names = (await r.json()).map(f => f.name).filter(n => /^\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
+    if (!names.length) return '오늘 기록이 없어요 · GitHub에 기록이 하나도 없어요 · PC 타임블록 상단이 "GitHub ✓"인지 확인해 주세요';
+    const last = names[names.length - 1].slice(0, 10);
+    return '오늘 기록이 없어요 · 마지막 기록 ' + (+last.slice(5,7)) + '월 ' + (+last.slice(8,10)) + '일 · PC 타임블록 상단이 "GitHub ✓"인지 확인해 주세요';
+  } catch(e) { return '오늘 기록이 없어요 · 인터넷 연결을 확인해 주세요'; }
+}
 async function fetchDay(force){
   if (demo) return;
   if (!cfg.repo || !cfg.token) { if ($('#settings').hidden) openSettings(); return; }
@@ -214,11 +226,12 @@ async function fetchDay(force){
     const url = 'https://api.github.com/repos/' + cfg.repo + '/contents/' + cfg.dir.replace(/^\/+|\/+$/g,'') + '/' + d + '.json?ref=' + encodeURIComponent(cfg.branch);
     const r = await fetch(url, {cache:'no-store', headers:{Authorization:'Bearer ' + cfg.token, Accept:'application/vnd.github.raw+json', 'X-GitHub-Api-Version':'2022-11-28'}});
     lastFetch = Date.now();
-    if (r.status === 404) { day = {}; dayDate = d; setStatus('오늘 기록이 아직 없어요 · PC 타임블록에서 입력하면 1분 안에 보여요'); render(); return; }
+    if (r.status === 404) { day = {}; dayDate = d; render(); setStatus(await whyMissing(d), true); return; }
     if (r.status === 401) throw new Error('토큰이 올바르지 않거나 만료됐어요');
     if (!r.ok) throw new Error('불러오기 실패 (' + r.status + ')');
     day = await r.json(); dayDate = d;
-    setStatus('업데이트 ' + hm(new Date().getHours()*60 + new Date().getMinutes()));
+    const pcAt = day._t ? new Date(day._t) : null;
+    setStatus((pcAt ? 'PC 저장 ' + hm(pcAt.getHours()*60 + pcAt.getMinutes()) + ' · ' : '') + '업데이트 ' + hm(new Date().getHours()*60 + new Date().getMinutes()));
     render();
   } catch(e) {
     setStatus((e instanceof TypeError ? '인터넷 연결을 확인해 주세요' : e.message) + (day ? ' · 마지막 기록을 보여주는 중' : ''), true);
