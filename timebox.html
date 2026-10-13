@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time Block</title>
+<style>
+:root{
+  --bg:#e9ecee; --paper:#fbfbfa; --ink:#1c2430; --mute:#7b8591; --line:#cfd5da;
+  --accent:#17605c; --accent-soft:#e1efed; --fixed:#f0f2f3;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#14181d;--paper:#1d232a;--ink:#e6eaee;--mute:#8d97a3;--line:#323b45;--accent:#5fc2ba;--accent-soft:#1f3532;--fixed:#232a32;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  line-height:1.5;padding:24px 12px 48px}
+.sheet{width:min(100%,794px);aspect-ratio:210/297;display:flex;flex-direction:column;margin:0 auto;background:var(--paper);border:1px solid var(--line);
+  border-radius:6px;padding:28px}
+header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
+  padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:22px}
+h1{font-size:24px;margin:0;font-weight:700;letter-spacing:-.01em}
+.date{display:flex;align-items:center;gap:6px;justify-self:end}
+.date input{font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:4px;padding:4px 8px}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:4px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+.dow{font-size:13px;color:var(--mute);min-width:1.5em;text-align:center}
+
+.layout{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:stretch;flex:1}
+aside{display:flex;flex-direction:column}
+h2{font-size:13px;margin:0 0 8px;font-weight:700}
+
+/* left column */
+.prio{border:1.5px solid var(--ink);border-radius:4px;overflow:hidden}
+.prio div{display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1.5px solid var(--ink);height:54px}
+.prio div:last-child{border-bottom:0}
+.prio span{font-size:13px;font-weight:700;color:var(--accent);width:14px}
+.prio input{flex:1;min-width:0;font:inherit;font-weight:600;color:var(--ink);background:transparent;border:0;outline:none}
+.dump{margin-top:22px;flex:1;display:flex;flex-direction:column}
+.dump textarea{width:100%;flex:1;min-height:200px;font:inherit;font-size:14px;line-height:24px;color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:4px;background:transparent;padding:10px;resize:vertical;outline:none;
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:16px 24px}
+.dump textarea:focus,.prio:focus-within{border-color:var(--accent)}
+
+/* right column */
+.row{display:block;padding:7px 0}
+.time.t-above{padding:0 0 3px}
+.fixed .time{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums;padding-top:3px;white-space:nowrap}
+.fixed{background:var(--fixed);border-radius:4px;padding:8px 12px;font-size:14px;color:var(--mute)}
+.fixed b{color:var(--ink);font-weight:600;margin-right:8px}
+
+.block,.morning{border:1.5px solid var(--ink);border-radius:6px;padding:12px 14px;background:var(--paper)}
+.block.done{border-color:var(--accent);background:var(--accent-soft)}
+.block .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.name{font-size:13px;font-weight:600;color:var(--accent)}
+.block label{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:6px;cursor:pointer}
+.block input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+.goal{width:100%;font:inherit;font-size:17px;font-weight:600;color:var(--ink);
+  background:transparent;border:0;border-bottom:1px dashed var(--line);padding:4px 0;outline:none}
+.goal:focus{border-bottom-color:var(--accent)}
+.block.done .goal{text-decoration:line-through;color:var(--mute)}
+.ruled{width:100%;font:inherit;font-size:14px;color:var(--ink);background:transparent;border:0;outline:none;
+  resize:vertical;min-height:56px;margin-top:6px;line-height:26px;padding:0;
+  background-image:repeating-linear-gradient(transparent 0 25px,var(--line) 25px 26px)}
+::placeholder{color:var(--mute);opacity:.7}
+
+.morning .name{display:block;margin-bottom:10px}
+.morning h3{font-size:13px;margin:12px 0 2px;font-weight:700}
+.morning h3:first-of-type{margin-top:0}
+.resolve{display:flex;flex-direction:column;gap:2px}
+.resolve input{width:100%;font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;
+  border-bottom:1px solid var(--line);padding:5px 0;outline:none}
+.resolve input:focus{border-bottom-color:var(--accent)}
+
+.bottom{display:flex;flex-direction:column;gap:18px;margin-top:28px;padding-top:20px;border-top:2px solid var(--ink)}
+.bottom label{font-size:14px;font-weight:700}
+.bottom input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px;font-weight:400;color:var(--ink);
+  background:transparent;border:0;border-bottom:1.5px solid var(--line);padding:8px 0;outline:none}
+.bottom input:focus{border-bottom-color:var(--accent)}
+.tools{margin-top:20px;display:flex;justify-content:flex-end;gap:8px}
+
+/* current-block focus */
+.row{position:relative;transition:transform .5s ease}
+.row.active{transform:scale(1.04);z-index:2}
+.row.active .block,.row.active .morning,.row.active .fixed{box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.row.active .goal{font-size:21px}
+.row.active .ruled{min-height:112px!important}
+.row.active .time{color:var(--accent);font-weight:700}
+@media (prefers-reduced-motion:reduce){.row{transition:none}}
+
+/* live remaining time */
+.time .remain{display:none;margin-left:8px;color:var(--accent);font-weight:700}
+.row.live .remain{display:inline}
+.bar{display:none;height:4px;background:var(--line);border-radius:2px;margin-top:4px;overflow:hidden}
+.row.live .bar{display:block}
+.bar b{display:block;height:100%;width:0;background:var(--accent);transition:width 1s linear}
+.fv-open{display:none;vertical-align:middle;width:24px;height:24px;margin-left:8px;padding:0;
+  align-items:center;justify-content:center;border:0;border-radius:6px;background:var(--accent);color:var(--paper);cursor:pointer;
+  box-shadow:0 2px 6px rgba(23,96,92,.35);transition:transform .15s ease}
+.fv-open svg{width:15px;height:15px}
+.row.live .fv-open{display:inline-flex}
+.fv-open:hover,.fv-open:focus-visible{color:var(--paper);transform:scale(1.12);outline:none}
+
+/* carry-over banner */
+.carry{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:8px 12px;
+  background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;font-size:14px}
+.carry[hidden]{display:none}
+.carry span{flex:1;min-width:160px}
+
+/* toast */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--paper);
+  padding:10px 18px;border-radius:6px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast[hidden]{display:none}
+
+.ghs{margin-right:auto;align-self:center;font-size:12px;color:var(--mute)}
+.ghs.err{color:#c0392b}
+.tools{align-items:center}
+.pdata input{display:block;width:100%;font:inherit;font-size:14px;color:var(--ink);background:transparent;
+  border:1px solid var(--line);border-radius:4px;padding:7px 9px}
+.pdata input:focus,.pdata textarea:focus{outline:none;border-color:var(--accent)}
+.pdata .msg{font-size:13px;margin-top:8px;min-height:1.4em}
+/* record panel */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.overlay[hidden]{display:none}
+.pcard{width:min(100%,720px);max-height:90vh;overflow:auto;background:var(--paper);color:var(--ink);
+  border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;
+  position:sticky;top:-18px;background:var(--paper);padding:0 0 8px;z-index:1}
+.ptabs{display:flex}
+.ptabs button{border-radius:0;padding:5px 12px;font-size:13px}
+.ptabs button+button{border-left:0}
+.ptabs button:first-child{border-radius:4px 0 0 4px}
+.ptabs button:last-child{border-radius:0 4px 4px 0}
+.ptabs button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.wk{display:grid;grid-template-columns:96px 1fr 48px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.wk:hover{background:var(--fixed)}
+.wk .dots{display:flex;gap:6px}
+.wk .dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:inline-block}
+.wk .dot.goal{border-color:var(--ink)}
+.wk .dot.done{background:var(--accent);border-color:var(--accent)}
+.wk .pct{font-size:13px;color:var(--mute);text-align:right}
+.lg{padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lg h4{margin:0 0 6px;font-size:14px;cursor:pointer;color:var(--accent)}
+.lg p{margin:2px 0;white-space:pre-wrap}
+.lg .m{color:var(--mute)}
+.pdata textarea{width:100%;min-height:120px;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--ink);background:transparent;
+  border:1px solid var(--line);border-radius:4px;padding:8px;resize:vertical}
+.pdata h5{margin:16px 0 6px;font-size:13px}
+.pdata .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pdata .hint{font-size:12px;color:var(--mute);margin:4px 0}
+
+/* focus screen */
+.focusv{--fv:#ffffff;position:fixed;inset:0;z-index:15;background:#0e1318;color:#f1f4f6;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:clamp(10px,2.4vh,26px);padding:24px;text-align:center}
+.focusv[hidden]{display:none}
+.fv-name{font-size:clamp(14px,2vw,20px);color:var(--fv);font-weight:600}
+.fv-time{display:flex;align-items:center;justify-content:center;gap:.05em;font-size:min(19vw,30vh,280px);line-height:1}
+.fv-time .digit .half{background:#1c1f23;color:#fff}
+.fv-time .digit .up,.fv-time .digit .fl-up{border-bottom:1px solid #000}
+.fcolon{display:flex;flex-direction:column;gap:.18em;padding:0 .04em}
+.fcolon i{width:.07em;height:.07em;border-radius:50%;background:#9aa3ad}
+.fv-goal{font-size:clamp(26px,5.2vw,64px);font-weight:700;line-height:1.25;max-width:min(1100px,92vw);word-break:keep-all}
+.fv-goal.empty{font-size:clamp(18px,2.6vw,30px);font-weight:400;color:#8d97a3}
+.fv-memo{font-size:clamp(14px,1.8vw,20px);color:#aab3bd;max-width:min(800px,90vw);white-space:pre-wrap;max-height:22vh;overflow:hidden}
+.fv-remain{font-size:clamp(16px,2.2vw,26px);color:var(--fv);font-weight:600}
+.fv-bar{width:min(640px,80vw);height:6px;background:#2a333c;border-radius:3px;overflow:hidden}
+.fv-bar b{display:block;height:100%;width:0;background:var(--fv);transition:width 1s linear}
+.fv-done{margin-top:clamp(4px,1.5vh,16px);font:inherit;font-size:clamp(16px,2vw,22px);font-weight:700;padding:12px 40px;
+  border-radius:8px;border:2px solid var(--fv);background:transparent;color:var(--fv);cursor:pointer}
+.fv-done:hover,.fv-done:focus-visible{background:var(--fv);color:#0e1318;outline:none}
+.fv-hint{position:absolute;bottom:18px;font-size:12px;color:#6d7783}
+
+.fv-sw{display:flex;gap:14px;margin-top:clamp(2px,1vh,10px)}
+.fv-sw button{width:26px;height:26px;padding:0;border-radius:50%;border:2px solid transparent;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(255,255,255,.25);transition:transform .15s ease}
+.fv-sw button:hover,.fv-sw button:focus-visible{transform:scale(1.15);outline:none}
+.fv-sw button.on{box-shadow:0 0 0 2px #0e1318,0 0 0 4px #f1f4f6}
+.bottom-sw{margin:0;gap:9px;align-items:center}
+.bottom-sw .swl{font-size:12px;color:var(--mute);margin-right:2px}
+.bottom-sw button{width:20px;height:20px;box-shadow:0 0 0 1px var(--line)}
+.bottom-sw button.on{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+.fss{margin:6px 0 0;text-align:right;font-size:12px;color:var(--mute)}
+.fss.ok{color:var(--accent)}
+.fss.err{color:#c0392b}
+/* alert switch */
+.swbtn{display:inline-flex;align-items:center;gap:8px}
+.sw{position:relative;width:34px;height:20px;border-radius:10px;background:var(--line);transition:background .2s ease;flex:none}
+.sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
+.swbtn.on .sw{background:var(--accent)}
+.swbtn.on .sw i{transform:translateX(14px)}
+@media (prefers-reduced-motion:reduce){.sw,.sw i{transition:none}}
+/* keep tool row on one line */
+.tools{flex-wrap:wrap;row-gap:8px}
+.tools button{white-space:nowrap;font-size:14px;padding:4px 10px}
+.tools .ghs,.bottom-sw .swl{white-space:nowrap}
+/* hover tooltips on bottom tools */
+.tools button[data-tip]{position:relative}
+.tools button[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);right:0;z-index:12;
+  width:max-content;max-width:240px;padding:7px 10px;border-radius:6px;background:var(--ink);color:var(--paper);
+  font-size:12px;font-weight:400;line-height:1.45;text-align:left;white-space:normal;box-shadow:0 6px 18px rgba(0,0,0,.2);
+  opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .15s ease .25s,transform .15s ease .25s}
+.tools button[data-tip]::before{content:"";position:absolute;bottom:calc(100% + 4px);right:14px;z-index:12;
+  border:6px solid transparent;border-top-color:var(--ink);border-bottom:0;opacity:0;pointer-events:none;transition:opacity .15s ease .25s}
+.tools button[data-tip]:hover::after,.tools button[data-tip]:focus-visible::after{opacity:1;transform:none}
+.tools button[data-tip]:hover::before,.tools button[data-tip]:focus-visible::before{opacity:1}
+@media (prefers-reduced-motion:reduce){.tools button[data-tip]::after,.tools button[data-tip]::before{transition:none}}
+/* sync status bar */
+.syncbar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin:-8px 0 14px;font-size:12px;color:var(--mute)}
+.syncbar.warn{justify-content:space-between;margin:-4px 0 16px;padding:8px 12px;border:1.5px solid #c0392b;border-radius:6px;
+  background:rgba(192,57,43,.08);color:#c0392b;font-size:13px;font-weight:600}
+.syncacts{display:flex;gap:6px}
+.syncacts button{font-size:12px;padding:3px 10px;border-color:#c0392b;color:#c0392b;white-space:nowrap}
+.syncacts button:hover{background:#c0392b;color:#fff}
+/* flip clock */
+.clockwrap{margin:0}
+.clockgrp{display:flex;align-items:center;justify-content:center}
+.clock{display:flex;justify-content:center;align-items:center;gap:.06em;font-size:clamp(36px,6vw,52px)}
+.digit{position:relative;width:.7em;height:1em;perspective:700px}
+.digit .half{position:absolute;left:0;width:100%;height:.5em;overflow:hidden;background:var(--ink);color:var(--paper);
+  backface-visibility:hidden}
+.digit .half span{display:block;height:1em;line-height:1em;text-align:center;font-weight:700;
+  font-variant-numeric:tabular-nums;font-family:"Helvetica Neue",Arial,sans-serif}
+.digit .up,.digit .fl-up{top:0;border-radius:.06em .06em 0 0}
+.digit .down,.digit .fl-down{bottom:0;border-radius:0 0 .06em .06em}
+.digit .down span,.digit .fl-down span{transform:translateY(-50%)}
+.digit .up{border-bottom:1px solid var(--paper)}
+.digit .fl-up{transform-origin:bottom;z-index:2;border-bottom:1px solid var(--paper)}
+.digit .fl-down{transform-origin:top;transform:rotateX(90deg);z-index:2}
+.digit.flipping .fl-up{animation:flipUp .28s ease-in forwards}
+.digit.flipping .fl-down{animation:flipDown .28s .28s ease-out forwards}
+@keyframes flipUp{to{transform:rotateX(-90deg)}}
+@keyframes flipDown{to{transform:rotateX(0)}}
+.colon{font-size:.55em;width:.35em;text-align:center;font-weight:700;color:var(--ink);line-height:1;padding-bottom:.06em;
+  animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){
+  .colon{animation:none}
+  .digit.flipping .fl-up,.digit.flipping .fl-down{animation-duration:.01s;animation-delay:0s}
+}
+
+@media (max-width:760px){
+  header{display:flex;flex-wrap:wrap;justify-content:space-between}
+  .clockgrp{order:3;width:100%;justify-content:center;gap:14px}
+    .layout{grid-template-columns:1fr}
+  .dump textarea{min-height:200px}
+  .sheet{padding:18px 14px;aspect-ratio:auto}
+  .row{grid-template-columns:1fr;gap:4px}
+}
+@media print{
+    .row.active{transform:none}
+  @page{size:A4;margin:10mm}
+  body{background:#fff;padding:0}
+  .sheet{border:0;width:100%;aspect-ratio:auto;padding:0;background:#fff;color:#000}
+  .tools,.date button,.fv-open,.fss,.carry,.toast,.overlay,.focusv{display:none!important}
+  .date input{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <h1>Time Block</h1>
+    <div class="clockgrp">
+      <div class="clockwrap"><div class="clock" id="clock" aria-label="현재 시간">
+      <div class="digit"></div><div class="digit"></div>
+      <span class="colon">:</span>
+      <div class="digit"></div><div class="digit"></div>
+    </div></div>
+    </div>
+    <div class="date">
+      <button id="prev" aria-label="전날">‹</button>
+      <input type="date" id="date">
+      <span class="dow" id="dow"></span>
+      <button id="next" aria-label="다음날">›</button>
+    </div>
+  </header>
+
+  <div class="syncbar" id="syncbar" role="status"><span id="syncText"></span><span class="syncacts" id="syncActs"></span></div>
+
+  <div class="carry" id="carry" hidden>
+    <span></span>
+    <button id="carryYes">브레인 덤프로 가져오기</button>
+    <button id="carryNo">닫기</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <h2>Top Priorities</h2>
+      <div class="prio">
+        <div><span>1</span><input data-k="p0" placeholder="가장 중요한 일"></div>
+        <div><span>2</span><input data-k="p1"></div>
+        <div><span>3</span><input data-k="p2"></div>
+      </div>
+      <div class="dump">
+        <h2>Brain Dump</h2>
+        <textarea data-k="dump" placeholder="머릿속에 떠오르는 것을 일단 여기에 비우기"></textarea>
+      </div>
+    </aside>
+
+    <section id="day"></section>
+  </div>
+
+  <section class="bottom">
+    <label>지금 이 순간 감사하고 싶은 일은?<input data-k="q0"></label>
+    <label>어떻게 하면 더 좋은 하루를 보낼 수 있을까?<input data-k="q1"></label>
+    <label>내가 되고 싶은 나의 미래와 다짐<input data-k="q2"></label>
+  </section>
+
+  <div class="tools">
+  <div class="fv-sw bottom-sw" title="집중 화면 색상">
+    <span class="swl">집중 화면 색</span>
+    <button data-c="#ffffff" title="흰색" aria-label="흰색" style="background:#ffffff"></button>
+    <button data-c="#ff9f43" title="주황" aria-label="주황" style="background:#ff9f43"></button>
+    <button data-c="#ffd84d" title="노랑" aria-label="노랑" style="background:#ffd84d"></button>
+    <button data-c="#6ec9ff" title="하늘" aria-label="하늘" style="background:#6ec9ff"></button>
+    <button data-c="#8be28b" title="연두" aria-label="연두" style="background:#8be28b"></button>
+  </div>
+    <button id="fsBtn" data-tip="동기화 폴더(시놀로지·구글 드라이브)를 연결해 날짜별 기록을 파일로 저장하고, 다른 기기와 같은 기록을 보게 해요">폴더 연결</button>
+    <button id="alertBtn" class="swbtn" role="switch" aria-checked="true" data-tip="블록 끝나기 5분 전 알림음과 안내를 켜고 꺼요"><span class="sw" aria-hidden="true"><i></i></span><span>알림</span></button>
+    <button id="logBtn" data-tip="최근 7일 완료 현황, 날짜별 기록 열람, 내보내기와 멘토 분석 요청문을 열어요">기록</button>
+    <button id="clear" data-tip="지금 보고 있는 날짜의 입력 내용을 모두 지워요 (되돌릴 수 없어요)">오늘 비우기</button>
+  </div>
+</main>
+
+<div class="focusv" id="focusv" role="dialog" aria-label="집중 화면" hidden>
+  <div class="fv-name"></div>
+  <div class="fv-time" id="fvClock" aria-label="현재 시각">
+    <div class="digit"></div><div class="digit"></div>
+    <span class="fcolon"><i></i><i></i></span>
+    <div class="digit"></div><div class="digit"></div>
+  </div>
+  <div class="fv-goal"></div>
+  <div class="fv-memo"></div>
+  <div class="fv-remain"></div>
+  <div class="fv-bar"><b></b></div>
+  <button class="fv-done" id="fvDone">완료</button>
+  <div class="fv-sw" id="fvSw">
+    <button data-c="#ffffff" title="흰색" aria-label="흰색" style="background:#ffffff"></button>
+    <button data-c="#ff9f43" title="주황" aria-label="주황" style="background:#ff9f43"></button>
+    <button data-c="#ffd84d" title="노랑" aria-label="노랑" style="background:#ffd84d"></button>
+    <button data-c="#6ec9ff" title="하늘" aria-label="하늘" style="background:#6ec9ff"></button>
+    <button data-c="#8be28b" title="연두" aria-label="연두" style="background:#8be28b"></button>
+  </div>
+  <div class="fv-hint">Esc 로 해제 · 다시 켜기: F 키 또는 하단 '집중' 버튼</div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<div class="overlay" id="panel" hidden>
+  <div class="pcard">
+    <div class="phead">
+      <div class="ptabs">
+        <button data-t="week">주간</button><button data-t="log">기록 열람</button><button data-t="data">내보내기 · 분석</button><button data-t="gh">GitHub</button>
+      </div>
+      <button id="pclose">닫기</button>
+    </div>
+    <div id="pbody"></div>
+  </div>
+</div>
+
+<script>
+const BLOCKS = [
+  {id:'b1', s:480, e:660, time:'08:00 – 11:00', name:'오전 블록 (3시간)'},
+  {id:'b2', s:720, e:900, time:'12:00 – 15:00', name:'오후 블록 1 (3시간)'},
+  {id:'b3', s:930, e:1050, time:'15:30 – 17:30', name:'오후 블록 2 (2시간)'}
+];
+const $ = s => document.querySelector(s);
+const dateEl = $('#date');
+const DOW = ['일','월','화','수','목','금','토'];
+const KEY = d => 'timebox:' + d;
+
+const dayHTML = () => `
+  <div class="row" data-s="300" data-e="420"><div class="time t-above">05:00 – 07:00<span class="remain"></span><i class="bar"><b></b></i></div>
+    <div class="morning">
+      <span class="name">무인카페</span>
+      <textarea class="ruled" data-k="reading" rows="3" style="min-height:78px;margin-top:0" placeholder="독서 · 생각정리 · 오늘 계획"></textarea>
+    </div></div>
+  ${BLOCKS.slice(0,1).map(blockHTML).join('')}
+  <div class="row" data-s="660" data-e="720"><div class="time t-above">11:00 – 12:00<span class="remain"></span><i class="bar"><b></b></i></div><div class="fixed"><b>점심</b></div></div>
+  ${BLOCKS.slice(1).map(blockHTML).join('')}`;
+
+const blockHTML = b => `
+  <div class="row" data-s="${b.s}" data-e="${b.e}"><div class="time t-above">${b.time}<span class="remain"></span><button class="fv-open" title="집중 모드 (F)" aria-label="집중 모드 켜기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/></svg></button><i class="bar"><b></b></i></div>
+    <div class="block" data-id="${b.id}">
+      <div class="top"><span class="name">${b.name}</span>
+        <label><input type="checkbox" data-k="${b.id}_done">완료</label></div>
+      <input class="goal" data-k="${b.id}_goal" placeholder="이 시간에 할 일 하나">
+      <textarea class="ruled" data-k="${b.id}_memo" placeholder="세부 메모"></textarea>
+    </div></div>`;
+
+function todayStr(){
+  const t = new Date(); t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
+  return t.toISOString().slice(0,10);
+}
+function shift(d, n){
+  const t = new Date(d + 'T00:00:00'); t.setDate(t.getDate() + n);
+  t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
+  return t.toISOString().slice(0,10);
+}
+function load(d){ try { return JSON.parse(localStorage.getItem(KEY(d))) || {}; } catch(e){ return {}; } }
+// ---- sync status (folder + GitHub), shown at the top; red when something is off ----
+var SY = {fs: 'none', fsMsg: '', fsAt: '', fsName: '', gh: 'none', ghMsg: '', ghAt: ''};
+function nowHM(){ const n = new Date(); return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0'); }
+function updateSync(){
+  const bar = document.getElementById('syncbar'); if (!bar || !SY) return;
+  const parts = [], acts = [];
+  const LOCAL = location.protocol === 'file:';
+  if (SY.fs === 'ok') parts.push('폴더 ✓' + (SY.fsAt ? ' ' + SY.fsAt : ''));
+  else if (!LOCAL && (SY.fs === 'none' || SY.fs === 'unsupported')) {}   // web version: GitHub only
+  else if (SY.fs === 'perm') { parts.push('폴더 권한이 풀렸어요 · 화면을 한 번 클릭하면 허용 창이 떠요'); acts.push(['fs', '폴더 다시 연결']); }
+  else if (SY.fs === 'err') { parts.push('폴더 오류: ' + SY.fsMsg); acts.push(['fs', '폴더 다시 연결']); }
+  else if (SY.fs === 'unsupported') parts.push('폴더 연결 미지원 브라우저');
+  else { parts.push('폴더 연결 안 됨 · 기록이 이 브라우저에만 저장돼요'); acts.push(['fs', '폴더 연결']); }
+  if (SY.gh === 'ok') parts.push('GitHub ✓' + (SY.ghAt ? ' ' + SY.ghAt + ' 저장' : ''));
+  else if (SY.gh === 'pending') parts.push('GitHub 저장 중…');
+  else if (SY.gh === 'err') { parts.push('GitHub 오류: ' + SY.ghMsg); acts.push(['gh', 'GitHub 설정']); }
+  else { parts.push('GitHub 꺼짐 · 휴대폰에 기록이 안 보여요'); acts.push(['gh', 'GitHub 설정']); }
+  const warn = acts.length > 0;
+  bar.classList.toggle('warn', warn);
+  document.getElementById('syncText').textContent = parts.join('  ·  ');
+  document.getElementById('syncActs').innerHTML = acts.map(a => '<button data-sync="' + a[0] + '">' + a[1] + '</button>').join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-sync]'); if (!b) return;
+  if (b.dataset.sync === 'fs') fsConnect(!fsRoot); else openPanel('gh');
+});
+
+// One save path: browser storage -> synced folder -> GitHub (phone)
+function persist(d, data){
+  data._t = Date.now();
+  try { localStorage.setItem(KEY(d), JSON.stringify(data)); } catch(e){}
+  fsSchedule(d);
+  ghSchedule(d);
+}
+function save(){
+  const data = {};
+  document.querySelectorAll('[data-k]').forEach(el => {
+    data[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  persist(dateEl.value, data);
+}
+function render(){
+  const d = dateEl.value;
+  $('#dow').textContent = DOW[new Date(d + 'T00:00:00').getDay()];
+  $('#day').innerHTML = dayHTML();
+  const data = load(d);
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const v = data[el.dataset.k];
+    if (el.type === 'checkbox') { el.checked = !!v; el.closest('.block').classList.toggle('done', !!v); }
+    else el.value = v || '';
+  });
+  ['p0','p1','p2'].forEach(k => lastP[k] = data[k] || '');
+  applyActive(); updateLive(); checkCarry();
+}
+function setDate(d){ dateEl.value = d; render(); fsPullDay(d); if (typeof ghAutoPull === 'function' && typeof GH !== 'undefined') ghAutoPull(1); }
+
+var lastP = {p0:'', p1:'', p2:''};
+var PMAP = {p0:'b1_goal', p1:'b2_goal', p2:'b3_goal'};
+document.addEventListener('input', e => {
+  const k = e.target.dataset && e.target.dataset.k;
+  if (e.target.type === 'checkbox') e.target.closest('.block').classList.toggle('done', e.target.checked);
+  if (k && PMAP[k]) {
+    const g = document.querySelector('[data-k="' + PMAP[k] + '"]');
+    if (g && (g.value === '' || g.value === lastP[k])) g.value = e.target.value;
+    lastP[k] = e.target.value;
+  }
+  if (k) save();
+});
+dateEl.addEventListener('change', () => setDate(dateEl.value || todayStr()));
+$('#prev').onclick = () => setDate(shift(dateEl.value, -1));
+$('#next').onclick = () => setDate(shift(dateEl.value, 1));
+$('#clear').onclick = () => {
+  if (!confirm('이 날짜의 내용을 모두 비울까요?')) return;
+  persist(dateEl.value, {});   // empty but newest, so the folder/GitHub copies are cleared too
+  render();
+};
+setDate(todayStr());
+
+// highlight current block (mouse wheel can browse other blocks)
+var manualIdx = null, manualTimer = null, lastWheel = 0;
+function rowsEl(){ return [...document.querySelectorAll('.row[data-s]')]; }
+function autoIdx(rows){
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes();
+  const cur = rows.findIndex(r => m >= +r.dataset.s && m < +r.dataset.e);
+  return cur;
+}
+function applyActive(){
+  const rows = rowsEl();
+  const idx = manualIdx !== null ? manualIdx : autoIdx(rows);
+  rows.forEach((r,i) => {
+    r.classList.toggle('active', i === idx);
+  });
+}
+function resetManual(){ manualIdx = null; clearTimeout(manualTimer); applyActive(); }
+function moveBlock(dir){
+  const rows = rowsEl();
+  if (manualIdx === null) {
+    const a = autoIdx(rows), m = new Date().getHours()*60 + new Date().getMinutes();
+    manualIdx = a >= 0 ? a : Math.max(0, rows.findIndex(r => +r.dataset.s > m));
+    if (manualIdx < 0) manualIdx = rows.length - 1;
+  }
+  manualIdx = Math.min(rows.length - 1, Math.max(0, manualIdx + dir));
+  applyActive();
+  clearTimeout(manualTimer);
+  manualTimer = setTimeout(resetManual, 30000);
+}
+$('#day').addEventListener('wheel', e => {
+  const t = e.target;
+  if (t.tagName === 'TEXTAREA' && t.scrollHeight > t.clientHeight) return;
+  e.preventDefault();
+  const now = Date.now();
+  if (now - lastWheel < 300) return;
+  lastWheel = now;
+  moveBlock(e.deltaY > 0 ? 1 : -1);
+}, {passive:false});
+document.addEventListener('keydown', e => {
+  if (!$('#panel').hidden) { if (e.key === 'Escape') closePanel(); return; }
+  if (!$('#focusv').hidden) { if (e.key === 'Escape') fvDismiss(); return; }
+  const t = e.target;
+  if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); moveBlock(1); }
+  else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); moveBlock(-1); }
+  else if (e.key === 'Escape' || e.key === 'Home') resetManual();
+  else if (e.key === 'f' || e.key === 'F') openFocus();
+});
+$('#clock').style.cursor = 'pointer';
+$('#clock').title = '클릭하면 현재 시간 블록으로 돌아가요';
+$('#clock').addEventListener('click', resetManual);
+
+// ---- remaining time + alerts ----
+var alertOn = true, alerted = {};
+try { alertOn = localStorage.getItem('timebox:alert') !== 'off'; } catch(e){}
+function fmtRemain(min){
+  const m = Math.max(1, Math.ceil(min)), h = Math.floor(m/60), r = m % 60;
+  return (h ? h + '시간 ' : '') + (r || !h ? r + '분' : '') + ' 남음';
+}
+function showToast(msg){
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(showToast.t); showToast.t = setTimeout(() => t.hidden = true, 8000);
+}
+function beep(){
+  try {
+    const c = new (window.AudioContext || window.webkitAudioContext)();
+    const o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.frequency.value = 880;
+    g.gain.setValueAtTime(.2, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, c.currentTime + .7);
+    o.start(); o.stop(c.currentTime + .7);
+  } catch(e){}
+}
+function updateLive(){
+  const rows = rowsEl(), isToday = dateEl.value === todayStr();
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
+  rows.forEach(r => {
+    const s0 = +r.dataset.s, e0 = +r.dataset.e;
+    const live = isToday && m >= s0 && m < e0;
+    r.classList.toggle('live', live);
+    if (!live) return;
+    const left = e0 - m;
+    r.querySelector('.remain').textContent = fmtRemain(left);
+    r.querySelector('.bar b').style.width = ((m - s0) / (e0 - s0) * 100) + '%';
+    const key = todayStr() + '|' + s0;
+    if (alertOn && left <= 5 && !alerted[key]) {
+      alerted[key] = true;
+      const nm = r.querySelector('.name, .fixed b');
+      showToast((nm ? nm.textContent : '블록') + ' 종료 5분 전');
+      beep();
+    }
+  });
+}
+function refreshAlertBtn(){ const b = $('#alertBtn'); b.setAttribute('aria-checked', alertOn ? 'true' : 'false'); b.classList.toggle('on', alertOn); }
+$('#alertBtn').onclick = () => {
+  alertOn = !alertOn;
+  try { localStorage.setItem('timebox:alert', alertOn ? 'on' : 'off'); } catch(e){}
+  if (alertOn) beep();
+  refreshAlertBtn();
+};
+refreshAlertBtn();
+
+// ---- carry over unfinished goals ----
+function checkCarry(){
+  const box = $('#carry'); box.hidden = true;
+  const d = dateEl.value;
+  if (d !== todayStr()) return;
+  try { if (localStorage.getItem('timebox:carry:' + d)) return; } catch(e){}
+  if (Object.values(load(d)).some(v => v)) return;
+  const prev = load(shift(d, -1));
+  const items = ['b1','b2','b3'].filter(k => prev[k + '_goal'] && !prev[k + '_done']).map(k => prev[k + '_goal']);
+  if (!items.length) return;
+  box._items = items;
+  box.querySelector('span').textContent = '어제 끝내지 못한 일 ' + items.length + '개: ' + items.join(' / ');
+  box.hidden = false;
+}
+function closeCarry(){
+  try { localStorage.setItem('timebox:carry:' + dateEl.value, '1'); } catch(e){}
+  $('#carry').hidden = true;
+}
+$('#carryYes').onclick = () => {
+  const dump = document.querySelector('[data-k="dump"]'), items = $('#carry')._items || [];
+  dump.value = (dump.value ? dump.value + '\n' : '') + items.map(t => '· ' + t).join('\n');
+  save(); closeCarry();
+};
+$('#carryNo').onclick = closeCarry;
+
+// ---- records panel ----
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function allDates(){
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (/^timebox:\d{4}-\d{2}-\d{2}$/.test(k)) out.push(k.slice(8));
+    }
+  } catch(e){}
+  return out.sort().reverse();
+}
+const dLabel = d => d.slice(5).replace('-','/') + ' (' + DOW[new Date(d + 'T00:00:00').getDay()] + ')';
+const BN = {b1:'오전', b2:'오후1', b3:'오후2'};
+function dayText(d){
+  const v = load(d), L = ['■ ' + d + ' (' + DOW[new Date(d + 'T00:00:00').getDay()] + ')'];
+  const pr = ['p0','p1','p2'].map(k => v[k]).filter(Boolean);
+  if (pr.length) L.push('- 최우선 과제: ' + pr.join(' / '));
+  ['b1','b2','b3'].forEach(k => {
+    if (v[k + '_goal'] || v[k + '_memo']) L.push('- ' + BN[k] + ' 블록: ' + (v[k + '_goal'] || '(미입력)') + ' [' + (v[k + '_done'] ? '완료' : '미완료') + ']' + (v[k + '_memo'] ? ' 메모: ' + v[k + '_memo'] : ''));
+  });
+  if (v.reading) L.push('- 아침 독서·계획: ' + v.reading);
+  if (v.q0) L.push('- 감사: ' + v.q0);
+  if (v.q1) L.push('- 더 좋은 하루: ' + v.q1);
+  if (v.q2) L.push('- 미래와 다짐: ' + v.q2);
+  if (v.dump) L.push('- 브레인 덤프: ' + v.dump);
+  return L.join('\n');
+}
+function openDay(d){ closePanel(); setDate(d); }
+function weekHTML(){
+  const rows = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = shift(todayStr(), -i), v = load(d);
+    const cells = ['b1','b2','b3'].map(k => '<span class="dot ' + (v[k + '_done'] ? 'done' : v[k + '_goal'] ? 'goal' : '') + '"></span>').join('');
+    const done = ['b1','b2','b3'].filter(k => v[k + '_done']).length;
+    rows.push('<div class="wk" data-d="' + d + '"><span>' + dLabel(d) + '</span><span class="dots">' + cells + '</span><span class="pct">' + Math.round(done/3*100) + '%</span></div>');
+  }
+  return '<p class="hint">● 완료 · ○ 입력만 함 · 빈 칸은 미입력 (오전 / 오후1 / 오후2)</p>' + rows.join('');
+}
+function logHTML(){
+  const ds = allDates();
+  if (!ds.length) return '<p class="hint">저장된 기록이 아직 없어요.</p>';
+  return ds.map(d => {
+    const v = load(d), L = [];
+    const pr = ['p0','p1','p2'].map(k => v[k]).filter(Boolean);
+    if (pr.length) L.push('<p><b>최우선</b> ' + esc(pr.join(' / ')) + '</p>');
+    ['b1','b2','b3'].forEach(k => { if (v[k + '_goal'] || v[k + '_memo']) L.push('<p><b>' + BN[k] + '</b> ' + (v[k + '_done'] ? '✓ ' : '') + esc(v[k + '_goal']) + (v[k + '_memo'] ? '<span class="m"> — ' + esc(v[k + '_memo']) + '</span>' : '') + '</p>'); });
+    [['reading','독서·계획'],['q0','감사'],['q1','더 좋은 하루'],['q2','미래와 다짐'],['dump','브레인 덤프']].forEach(([k, n]) => { if (v[k]) L.push('<p><b>' + n + '</b> ' + esc(v[k]) + '</p>'); });
+    return '<div class="lg"><h4 data-d="' + d + '">' + dLabel(d) + ' · 열기</h4>' + (L.join('') || '<p class="m">내용 없음</p>') + '</div>';
+  }).join('');
+}
+function dataHTML(){
+  const all = {}; allDates().forEach(d => all[d] = load(d));
+  return '<div class="pdata">'
+    + '<h5>전체 기록 (JSON)</h5><textarea id="jsonBox" readonly>' + esc(JSON.stringify(all, null, 1)) + '</textarea>'
+    + '<div class="btns"><button id="jCopy">복사</button><button id="jDown">파일로 받기</button></div>'
+    + '<h5>다른 기기·백업에서 가져오기</h5><textarea id="jIn" placeholder="내보낸 JSON을 여기에 붙여넣기"></textarea>'
+    + '<div class="btns"><button id="jImp">가져오기 (같은 날짜는 덮어씀)</button></div>'
+    + '<h5>멘토 분석 요청문 (최근 14일)</h5><p class="hint">복사해서 Claude 대화창에 붙여넣으면 사업 컨설턴트·인생 멘토 관점으로 분석해 드려요.</p>'
+    + '<textarea id="mBox" readonly></textarea><div class="btns"><button id="mCopy">요청문 복사</button></div></div>';
+}
+function mentorText(){
+  const ds = allDates().slice(0, 14).reverse();
+  return '너는 나의 사업 컨설턴트이자 인생 멘토야. 아래는 내 최근 ' + ds.length + '일간의 타임블록 기록이야.\n'
+    + '1) 내가 시간을 어디에 쓰고 있는지, 반복해서 미루는 일은 무엇인지 패턴을 분석해줘.\n'
+    + '2) 내가 가고 있는 방향이 내가 쓴 다짐·미래와 맞는지 냉정하게 검토해줘.\n'
+    + '3) 더 나은 방향성과 우선순위를 제안해줘.\n'
+    + '4) 다음 한 주에 바로 실행할 구체적 제안 3가지를 줘.\n\n' + ds.map(dayText).join('\n\n');
+}
+async function copyText(el, btn){
+  el.select();
+  let ok = false;
+  try { await navigator.clipboard.writeText(el.value); ok = true; } catch(e){ try { ok = document.execCommand('copy'); } catch(_){} }
+  const o = btn.textContent; btn.textContent = ok ? '복사됨' : '선택됨 — Ctrl+C'; setTimeout(() => btn.textContent = o, 1800);
+}
+function showTab(t){
+  document.querySelectorAll('.ptabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  const body = $('#pbody');
+  body.innerHTML = t === 'week' ? weekHTML() : t === 'log' ? logHTML() : t === 'gh' ? ghHTML() : dataHTML();
+  body.querySelectorAll('[data-d]').forEach(el => el.onclick = () => openDay(el.dataset.d));
+  if (t === 'gh') ghWire();
+  if (t === 'data') {
+    $('#mBox').value = mentorText();
+    $('#jCopy').onclick = e => copyText($('#jsonBox'), e.target);
+    $('#mCopy').onclick = e => copyText($('#mBox'), e.target);
+    $('#jDown').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([$('#jsonBox').value], {type:'application/json'}));
+      a.download = 'timeblock-' + todayStr() + '.json'; a.click();
+    };
+    $('#jImp').onclick = () => {
+      try {
+        const obj = JSON.parse($('#jIn').value);
+        let n = 0;
+        Object.keys(obj).forEach(d => { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && typeof obj[d] === 'object') { localStorage.setItem(KEY(d), JSON.stringify(obj[d])); n++; } });
+        showToast(n + '일치 기록을 가져왔어요'); render(); showTab('data');
+      } catch(e) { showToast('JSON 형식을 확인해 주세요'); }
+    };
+  }
+}
+function openPanel(t){ save(); $('#panel').hidden = false; showTab(t || 'week'); }
+function closePanel(){ $('#panel').hidden = true; }
+$('#logBtn').onclick = () => openPanel('week');
+$('#pclose').onclick = closePanel;
+$('#panel').addEventListener('click', e => { if (e.target.id === 'panel') closePanel(); });
+document.querySelectorAll('.ptabs button').forEach(b => b.onclick = () => showTab(b.dataset.t));
+
+
+// ---- GitHub auto commit ----
+var GH = {repo:'', branch:'main', dir:'records', token:''};
+try { Object.assign(GH, JSON.parse(localStorage.getItem('timebox:gh') || '{}')); } catch(e){}
+var ghShas = {}, ghQueue = Promise.resolve(), ghPending = new Set(), ghTimer = null;
+function ghOn(){ return !!(GH.repo && GH.token); }
+function ghDir(){ return (GH.dir || 'records').replace(/^\/+|\/+$/g, ''); }
+function b64enc(t){ return btoa(unescape(encodeURIComponent(t))); }
+function b64dec(b){ return decodeURIComponent(escape(atob(b.replace(/\s/g, '')))); }
+function ghSt(state, msg){ SY.gh = state; SY.ghMsg = msg || ''; if (state === 'ok' && msg === 'saved') SY.ghAt = nowHM(); updateSync(); }
+function ghPushedMap(){ try { return JSON.parse(localStorage.getItem('timebox:ghpushed')) || {}; } catch(e){ return {}; } }
+function ghMarkPushed(d, t){ const m = ghPushedMap(); m[d] = t; try { localStorage.setItem('timebox:ghpushed', JSON.stringify(m)); } catch(e){} }
+// push any recent day that changed since it was last pushed (e.g. typed while GitHub was off)
+function ghCatchUp(){
+  if (!ghOn()) return;
+  const pm = ghPushedMap();
+  allDates().slice(0, 30).forEach(d => { const v = load(d); if ((v._t || 1) > (pm[d] || 0)) ghPending.add(d); });
+  if (ghPending.size) { ghSt('pending'); clearTimeout(ghTimer); ghTimer = setTimeout(ghFlush, 1500); }
+}
+function ghErr(e){ return e instanceof TypeError ? '연결 차단됨 (이 주소에서는 GitHub로 보낼 수 없어요. 내 PC에서 파일로 열어 주세요)' : e.message; }
+function ghReq(path, method, body){
+  let url = 'https://api.github.com/repos/' + GH.repo + (path ? '/contents/' + path : '');
+  if (method === 'GET' && path) url += '?ref=' + encodeURIComponent(GH.branch);
+  return fetch(url, {method, headers:{Authorization:'Bearer ' + GH.token, Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'},
+    body: body ? JSON.stringify(body) : undefined});
+}
+async function ghPush(d){
+  const data = load(d);
+  if (!Object.values(data).some(v => v)) return 'skip';
+  const path = ghDir() + '/' + d + '.json';
+  const text = JSON.stringify(Object.assign({date:d}, data), null, 1) + '\n';
+  let last = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let sha = ghShas[path];
+    if (!sha || attempt) {
+      const g = await ghReq(path, 'GET');
+      if (g.ok) { const j = await g.json(); sha = j.sha; if (b64dec(j.content) === text) { ghShas[path] = sha; ghMarkPushed(d, data._t || Date.now()); return 'same'; } }
+      else if (g.status === 404) sha = undefined;
+      else throw new Error('읽기 실패 (' + g.status + ') — 저장소 이름·토큰 권한을 확인해 주세요');
+    }
+    const r = await ghReq(path, 'PUT', {message:'record: ' + d, content:b64enc(text), branch:GH.branch, sha});
+    if (r.ok) { const j = await r.json(); ghShas[path] = j.content.sha; ghMarkPushed(d, data._t || Date.now()); return 'ok'; }
+    last = r.status; ghShas[path] = undefined;
+    if (r.status !== 409 && r.status !== 422) break;
+  }
+  throw new Error('저장 실패 (' + last + ') — 토큰에 Contents 쓰기 권한이 있는지, 브랜치 이름이 맞는지 확인해 주세요');
+}
+function ghSchedule(d){
+  if (!ghOn()) return;
+  ghPending.add(d); ghSt('pending');
+  clearTimeout(ghTimer); ghTimer = setTimeout(ghFlush, 4000);
+}
+function ghFlush(){
+  ghTimer = null;
+  ghQueue = ghQueue.then(async () => {
+    const ds = [...ghPending]; ghPending.clear();
+    if (!ds.length) return;
+    ghSt('pending');
+    try {
+      for (const d of ds) await ghPush(d);
+      ghSt('ok', 'saved');
+    } catch(e) { ds.forEach(d => ghPending.add(d)); ghSt('err', ghErr(e)); }
+  });
+  return ghQueue;
+}
+async function ghPull(){
+  const r = await ghReq(ghDir(), 'GET');
+  if (r.status === 404) return 0;
+  if (!r.ok) throw new Error('읽기 실패 (' + r.status + ')');
+  let n = 0;
+  for (const f of await r.json()) {
+    const m = /^(\d{4}-\d{2}-\d{2})\.json$/.exec(f.name);
+    if (!m || localStorage.getItem(KEY(m[1]))) continue;
+    const g = await ghReq(ghDir() + '/' + f.name, 'GET');
+    if (!g.ok) continue;
+    const j = await g.json(), obj = JSON.parse(b64dec(j.content));
+    delete obj.date; localStorage.setItem(KEY(m[1]), JSON.stringify(obj)); ghShas[ghDir() + '/' + f.name] = j.sha; n++;
+  }
+  return n;
+}
+// ---- pull from GitHub: records written on other devices (laptop, tablet) ----
+var ghPulling = false;
+function applyRemote(d, obj, sha){
+  const remote = Object.assign({}, obj); delete remote.date;
+  const local = load(d);
+  if ((local._t || 0) >= (remote._t || 0)) { if ((local._t || 0) > (remote._t || 0)) ghPending.add(d); return false; }
+  if (d === dateEl.value && editing()) return false;          // never overwrite while typing
+  try { localStorage.setItem(KEY(d), JSON.stringify(remote)); } catch(e){}
+  ghShas[ghDir() + '/' + d + '.json'] = sha; ghMarkPushed(d, remote._t || 0);
+  fsSchedule(d);                                               // keep the synced folder (Claude Code) up to date
+  if (d === dateEl.value) render();
+  return true;
+}
+async function ghFetchDay(d){
+  const path = ghDir() + '/' + d + '.json';
+  const r = await ghReq(path, 'GET');
+  if (r.status === 404) return false;
+  if (!r.ok) throw new Error('불러오기 실패 (' + r.status + ')');
+  const j = await r.json();
+  if (ghShas[path] === j.sha) return false;
+  return applyRemote(d, JSON.parse(b64dec(j.content)), j.sha);
+}
+// days = 1: only the open date (every minute); days > 1: scan the folder and fetch changed files
+async function ghAutoPull(days){
+  if (!ghOn() || ghPulling || ghTimer) return;
+  ghPulling = true;
+  let got = 0;
+  try {
+    if (days <= 1) { if (await ghFetchDay(dateEl.value)) got++; }
+    else {
+      const r = await ghReq(ghDir(), 'GET');
+      if (r.ok) {
+        const since = shift(todayStr(), -days);
+        for (const f of await r.json()) {
+          const m = /^(\d{4}-\d{2}-\d{2})\.json$/.exec(f.name);
+          if (!m || m[1] < since || ghShas[ghDir() + '/' + f.name] === f.sha) continue;
+          if (await ghFetchDay(m[1])) got++;
+        }
+      }
+    }
+    if (got) { SY.ghAt = nowHM(); ghSt('ok'); showToast('다른 기기에서 쓴 기록을 불러왔어요'); }
+    if (ghPending.size && !ghTimer) ghTimer = setTimeout(ghFlush, 1500);
+  } catch(e) { if (!(e instanceof TypeError)) ghSt('err', e.message); }
+  ghPulling = false;
+}
+function ghHTML(){
+  return '<div class="pdata">'
+    + '<p class="hint">기록을 바꾸면 몇 초 뒤 <b>저장소/' + esc(ghDir()) + '/날짜.json</b> 으로 자동 커밋돼요. 토큰은 이 브라우저와, 연결한 동기화 폴더의 설정 파일(.timeblock-config.json)에 저장돼서 다른 브라우저도 폴더만 연결하면 자동으로 GitHub이 연결돼요. 비공개 저장소와, 그 저장소 하나에만 Contents 읽기·쓰기 권한을 준 토큰(fine-grained)을 쓰세요.</p>'
+    + '<h5>저장소 (owner/repo)</h5><input id="ghRepo" placeholder="예: myname/timeblock-data" value="' + esc(GH.repo) + '">'
+    + '<h5>브랜치</h5><input id="ghBranch" value="' + esc(GH.branch) + '">'
+    + '<h5>폴더</h5><input id="ghDirIn" value="' + esc(GH.dir) + '">'
+    + '<h5>토큰</h5><input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." value="' + esc(GH.token) + '">'
+    + '<div class="btns"><button id="ghSave">저장 후 연결 테스트</button><button id="ghAll">기존 기록 전체 올리기</button><button id="ghPullBtn">GitHub에서 가져오기</button><button id="ghOff">연결 해제</button></div>'
+    + '<div class="msg" id="ghMsg"></div></div>';
+}
+function ghWire(){
+  const msg = (t, err) => { const m = $('#ghMsg'); m.textContent = t; m.style.color = err ? '#c0392b' : 'var(--accent)'; };
+  const read = () => {
+    GH.repo = $('#ghRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    GH.branch = $('#ghBranch').value.trim() || 'main';
+    GH.dir = $('#ghDirIn').value.trim() || 'records';
+    GH.token = $('#ghToken').value.trim();
+    try { localStorage.setItem('timebox:gh', JSON.stringify(GH)); } catch(e){}
+    cfgWrite();
+  };
+  $('#ghSave').onclick = async () => {
+    read(); ghShas = {};
+    if (!ghOn()) return msg('저장소와 토큰을 입력해 주세요', true);
+    msg('확인 중…');
+    try {
+      const r = await ghReq('', 'GET');
+      if (r.status === 404) return msg('저장소를 찾을 수 없어요. 이름이 맞는지, 토큰이 이 저장소에 접근 권한이 있는지 확인해 주세요', true);
+      if (r.status === 401) return msg('토큰이 올바르지 않거나 만료됐어요', true);
+      if (!r.ok) return msg('연결 실패 (' + r.status + ')', true);
+      const j = await r.json();
+      if (j.permissions && !j.permissions.push) return msg('연결은 됐지만 쓰기 권한이 없어요. 토큰의 Contents 권한을 Read and write로 바꿔 주세요', true);
+      msg('연결됐어요' + (j.private ? ' (비공개 저장소)' : ' — 공개 저장소예요. 기록이 모두에게 보이니 비공개를 권장해요'));
+      ghSt('ok'); ghAutoPull(30).then(ghCatchUp);
+    } catch(e) { msg(ghErr(e), true); }
+  };
+  $('#ghAll').onclick = async () => {
+    read(); if (!ghOn()) return msg('먼저 저장소와 토큰을 저장해 주세요', true);
+    allDates().forEach(d => ghPending.add(d)); msg('올리는 중…');
+    await ghFlush();
+    const bad = SY.gh === 'err';
+    msg(bad ? 'GitHub 오류: ' + SY.ghMsg : '모두 올렸어요', bad);
+  };
+  $('#ghPullBtn').onclick = async () => {
+    read(); if (!ghOn()) return msg('먼저 저장소와 토큰을 저장해 주세요', true);
+    msg('가져오는 중…');
+    try { const n = await ghPull(); msg(n + '일치 기록을 가져왔어요 (이 기기에 없던 날짜만)'); render(); }
+    catch(e) { msg(ghErr(e), true); }
+  };
+  $('#ghOff').onclick = () => {
+    if (!confirm('GitHub 연결을 해제할까요? 폴더 설정 파일에서도 지워져서, 같은 폴더를 쓰는 다른 브라우저도 함께 해제돼요.')) return;
+    GH = {repo:'', branch:'main', dir:'records', token:''}; ghPending.clear();
+    try { localStorage.removeItem('timebox:gh'); } catch(e){}
+    cfgWrite(); ghSt('none'); showTab('gh');
+  };
+}
+if (ghOn()) { ghSt('ok'); setTimeout(() => { ghAutoPull(14).then(ghCatchUp); }, 1500); }
+setInterval(() => ghAutoPull(1), 60000);
+setInterval(() => ghAutoPull(14), 300000);
+window.addEventListener('focus', () => ghAutoPull(1));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ghAutoPull(1); });
+
+// ---- focus screen (auto on during work blocks) ----
+var fvDismissed = {}, fvKey = null, fvId = null, fvPreview = false;
+const hm = min => String(Math.floor(min/60)).padStart(2,'0') + ':' + String(Math.round(min%60)).padStart(2,'0');
+var lastInput = Date.now(), FV_IDLE = 5 * 60 * 1000;
+['mousemove','mousedown','keydown','wheel','touchstart'].forEach(ev =>
+  document.addEventListener(ev, () => { lastInput = Date.now(); }, {passive:true, capture:true}));
+function fvDismiss(done){ if (fvPreview) { fvPreview = false; $('#focusv').hidden = true; return; }
+  if (fvKey) fvDismissed[fvKey] = done === true ? true : 'esc'; $('#focusv').hidden = true; }
+function updateFocus(){
+  const v = $('#focusv');
+  if (fvPreview) { const t = new Date(); fvFlip(t); return; }
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
+  const row = dateEl.value === todayStr()
+    ? rowsEl().find(r => r.querySelector('.block') && m >= +r.dataset.s && m < +r.dataset.e) : null;
+  if (!row) { fvKey = null; v.hidden = true; return; }
+  const key = todayStr() + '|' + row.dataset.s;
+  if (v.hidden) {
+    if (!$('#panel').hidden) return;
+    const dm = fvDismissed[key];
+    if (dm === true) return;
+    if (dm === 'esc') { if (Date.now() - lastInput < FV_IDLE) return; delete fvDismissed[key]; }
+    v.hidden = false;
+  }
+  fvKey = key;
+  const id = row.querySelector('.block').dataset.id; fvId = id;
+  const s0 = +row.dataset.s, e0 = +row.dataset.e;
+  const goal = document.querySelector('[data-k="' + id + '_goal"]').value.trim();
+  const memo = document.querySelector('[data-k="' + id + '_memo"]').value.trim();
+  v.querySelector('.fv-name').textContent = row.querySelector('.name').textContent + ' · ' + hm(s0) + ' – ' + hm(e0);
+  fvFlip(n);
+  const g = v.querySelector('.fv-goal');
+  g.textContent = goal || '이 시간에 할 일을 아직 정하지 않았어요 (Esc 후 입력)';
+  g.classList.toggle('empty', !goal);
+  v.querySelector('.fv-memo').textContent = memo;
+  v.querySelector('.fv-remain').textContent = fmtRemain(e0 - m);
+  $('#fvDone').textContent = document.querySelector('[data-k="' + id + '_done"]').checked ? '완료됨 ✓' : '완료';
+  v.querySelector('.fv-bar b').style.width = ((m - s0) / (e0 - s0) * 100) + '%';
+}
+function openFocus(){
+  fvDismissed = {}; updateFocus();
+  if (!$('#focusv').hidden) return;
+  const v = $('#focusv'), t = new Date();
+  fvPreview = true; v.hidden = false;
+  v.querySelector('.fv-name').textContent = '오전 블록 (3시간) · 08:00 – 11:00 (미리보기)';
+  fvFlip(t);
+  const g = v.querySelector('.fv-goal'); g.textContent = '제안서 초안 쓰기'; g.classList.remove('empty');
+  v.querySelector('.fv-memo').textContent = '3장까지 작성';
+  v.querySelector('.fv-remain').textContent = '34분 남음';
+  v.querySelector('.fv-bar b').style.width = '81%';
+  $('#fvDone').textContent = '완료';
+}
+document.addEventListener('click', e => { if (e.target.closest('.fv-open')) openFocus(); });
+$('#fvDone').onclick = () => {
+  if (fvPreview) { fvDismiss(); return; }
+  const el = document.querySelector('[data-k="' + fvId + '_done"]');
+  if (el && !el.checked) { el.checked = true; el.dispatchEvent(new Event('input', {bubbles:true})); }
+  fvDismiss(true);
+};
+
+// focus color swatches
+function setFvColor(c){
+  $('#focusv').style.setProperty('--fv', c);
+  document.querySelectorAll('.fv-sw button').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+  try { localStorage.setItem('timebox:fvcolor', c); } catch(e){}
+}
+document.querySelectorAll('.fv-sw button').forEach(b => b.onclick = () => setFvColor(b.dataset.c));
+var savedFv = '#ffffff'; try { savedFv = localStorage.getItem('timebox:fvcolor') || savedFv; } catch(e){}
+setFvColor(savedFv);
+
+// ---- synced-folder DB: <folder>/timeblock/YYYY-MM-DD.json ----
+const FS_DIR = 'timeblock';
+const FS_README = 'Time Block daily record. topPriorities = 3 most important tasks; morning = notes from 05-07 cafe time (reading, thoughts, plan); blocks = work blocks with task, memo, done; brainDump = free notes; reflection = 3 evening questions.';
+var fsRoot = null, fsDirH = null, fsTimer = null, fsPending = new Set(), fsWriting = false, fsMods = {};
+const fsIdb = {
+  open(){ return new Promise((res, rej) => { const r = indexedDB.open('timebox', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  async get(k){ try { const db = await this.open(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch(e){ return null; } },
+  async set(k, v){ try { const db = await this.open(); await new Promise(res => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = res; }); } catch(e){} }
+};
+function fsSet(msg, kind){ if (kind === 'err') { SY.fs = 'err'; SY.fsMsg = msg; } updateSync(); }
+const fsHM = () => { const n = new Date(); return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0'); };
+const hasContent = v => Object.keys(v).some(k => k !== '_t' && v[k]);
+function toFile(d, v){
+  return {
+    _readme: FS_README, date: d, weekday: DOW[new Date(d + 'T00:00:00').getDay()],
+    savedAt: new Date(v._t || Date.now()).toISOString(),
+    topPriorities: ['p0','p1','p2'].map(k => v[k] || ''),
+    morning: v.reading || '',
+    blocks: BLOCKS.map(b => ({id: b.id, time: b.time, name: b.name, task: v[b.id + '_goal'] || '', memo: v[b.id + '_memo'] || '', done: !!v[b.id + '_done']})),
+    brainDump: v.dump || '',
+    reflection: {gratitude: v.q0 || '', betterDay: v.q1 || '', futureAndResolve: v.q2 || ''}
+  };
+}
+function fromFile(o){
+  const v = {_t: Date.parse(o.savedAt) || 0};
+  (o.topPriorities || []).slice(0, 3).forEach((t, i) => v['p' + i] = t || '');
+  v.reading = o.morning || ''; v.dump = o.brainDump || '';
+  (o.blocks || []).forEach(b => { if (!b || !b.id) return; v[b.id + '_goal'] = b.task || ''; v[b.id + '_memo'] = b.memo || ''; v[b.id + '_done'] = !!b.done; });
+  const r = o.reflection || {}; v.q0 = r.gratitude || ''; v.q1 = r.betterDay || ''; v.q2 = r.futureAndResolve || '';
+  return v;
+}
+async function fsWrite(d){
+  const v = load(d); if (!v._t && !hasContent(v)) return;
+  const fh = await fsDirH.getFileHandle(d + '.json', {create: true});
+  const w = await fh.createWritable(); await w.write(JSON.stringify(toFile(d, v), null, 2) + '\n'); await w.close();
+  fsMods[d] = (await fh.getFile()).lastModified;
+}
+function fsSchedule(d){
+  if (!fsDirH) return;
+  fsPending.add(d); fsSet('저장 대기…', 'ok');
+  clearTimeout(fsTimer); fsTimer = setTimeout(fsFlush, 800);
+}
+async function fsFlush(){
+  fsTimer = null; if (!fsDirH || fsWriting) return;
+  fsWriting = true;
+  const ds = [...fsPending]; fsPending.clear();
+  try { for (const d of ds) await fsWrite(d); SY.fs = 'ok'; SY.fsAt = fsHM(); updateSync(); }
+  catch(e) { ds.forEach(d => fsPending.add(d)); fsSet('저장 실패: ' + e.message, 'err'); }
+  fsWriting = false;
+}
+const editing = () => { const a = document.activeElement; return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a.dataset && a.dataset.k; };
+async function fsPullDay(d, quiet){
+  if (!fsDirH || fsWriting || fsTimer) return;
+  try {
+    const fh = await fsDirH.getFileHandle(d + '.json');
+    const f = await fh.getFile();
+    if (fsMods[d] && f.lastModified <= fsMods[d]) return;
+    const fileV = fromFile(JSON.parse(await f.text())), local = load(d);
+    fsMods[d] = f.lastModified;
+    if (local._t && local._t >= fileV._t) { if (local._t > fileV._t) fsSchedule(d); return; }
+    if (editing() && d === dateEl.value) { delete fsMods[d]; return; }
+    try { localStorage.setItem(KEY(d), JSON.stringify(fileV)); } catch(e){}
+    if (typeof ghSchedule === 'function') ghSchedule(d);   // forward records written on another device to GitHub (phone)
+    if (d === dateEl.value) render();
+    if (!quiet) { SY.fsAt = fsHM(); updateSync(); showToast('다른 기기에서 쓴 기록을 불러왔어요'); }
+  } catch(e) {
+    if (e.name === 'NotFoundError') { if (hasContent(load(d))) fsSchedule(d); return; }
+    fsSet('읽기 실패: ' + e.message, 'err');
+  }
+}
+async function fsSyncAll(){
+  const seen = new Set();
+  for await (const [name, h] of fsDirH.entries()) {
+    const m = /^(\d{4}-\d{2}-\d{2})\.json$/.exec(name); if (!m || h.kind !== 'file') continue;
+    seen.add(m[1]); await fsPullDay(m[1], true);
+  }
+  allDates().forEach(d => { if (!seen.has(d) && hasContent(load(d))) fsPending.add(d); });
+  if (fsPending.size) await fsFlush();
+}
+// GitHub settings shared through the synced folder, so a new browser only needs the folder
+const CFG_FILE = '.timeblock-config.json';
+async function cfgRead(){
+  try { const fh = await fsRoot.getFileHandle(CFG_FILE); return JSON.parse(await (await fh.getFile()).text()); } catch(e){ return null; }
+}
+async function cfgWrite(){
+  if (!fsRoot || !fsDirH) return;
+  try {
+    const fh = await fsRoot.getFileHandle(CFG_FILE, {create: true}), w = await fh.createWritable();
+    await w.write(JSON.stringify({_readme: 'Time Block 설정 파일. GitHub 토큰이 들어 있으니 공유하거나 다른 곳에 올리지 마세요.',
+      github: ghOn() ? {repo: GH.repo, branch: GH.branch, dir: GH.dir, token: GH.token} : null}, null, 2) + '\n');
+    await w.close();
+  } catch(e){}
+}
+async function cfgApply(){
+  const cfg = await cfgRead(), g = cfg && cfg.github;
+  if (g && g.repo && g.token && !ghOn()) {
+    Object.assign(GH, {repo: g.repo, branch: g.branch || 'main', dir: g.dir || 'records', token: g.token});
+    try { localStorage.setItem('timebox:gh', JSON.stringify(GH)); } catch(e){}
+    ghShas = {}; ghSt('ok'); showToast('폴더 설정에서 GitHub 연결을 불러왔어요'); ghAutoPull(14).then(ghCatchUp);
+  } else if (ghOn() && !(g && g.token === GH.token && g.repo === GH.repo)) cfgWrite();
+}
+var fsBusy = false;
+function armRegrant(){
+  const h = () => { document.removeEventListener('pointerdown', h, true); document.removeEventListener('keydown', h, true); if (fsRoot && !fsDirH) fsConnect(false); };
+  document.addEventListener('pointerdown', h, true); document.addEventListener('keydown', h, true);
+}
+async function fsConnect(pick){
+  if (fsBusy) return; fsBusy = true;
+  try {
+    if (pick || !fsRoot) { fsRoot = await window.showDirectoryPicker({id: 'timeblock', mode: 'readwrite'}); await fsIdb.set('dir', fsRoot); }
+    let perm = await fsRoot.queryPermission({mode: 'readwrite'});
+    if (perm !== 'granted') perm = await fsRoot.requestPermission({mode: 'readwrite'});
+    if (perm !== 'granted') { SY.fs = 'perm'; updateSync(); armRegrant(); return; }
+    fsDirH = await fsRoot.getDirectoryHandle(FS_DIR, {create: true});
+    await fsSyncAll();
+    await cfgApply();
+    render();
+    $('#fsBtn').textContent = '폴더 변경';
+    SY.fs = 'ok'; SY.fsName = fsRoot.name; updateSync();
+  } catch(e) {
+    if (e.name === 'AbortError') return;
+    fsDirH = null;
+    const blocked = e.name === 'SecurityError' || e instanceof TypeError;
+    fsSet(blocked ? '이 주소에서는 폴더 연결이 안 돼요. 크롬·엣지에서 내 PC의 timebox.html 파일로 열어 주세요' : '연결 실패: ' + e.message, 'err');
+  } finally { fsBusy = false; }
+}
+$('#fsBtn').onclick = () => fsConnect(!!fsDirH || !fsRoot);
+window.addEventListener('focus', () => fsPullDay(dateEl.value));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) fsPullDay(dateEl.value); });
+setInterval(() => fsPullDay(dateEl.value), 5000);
+(async () => {
+  if (!('showDirectoryPicker' in window)) { $('#fsBtn').hidden = true; SY.fs = 'unsupported'; updateSync(); return; }
+  const h = await fsIdb.get('dir'); if (!h) { SY.fs = 'none'; updateSync(); return; }
+  fsRoot = h; SY.fsName = h.name;
+  try { if ((await h.queryPermission({mode: 'readwrite'})) === 'granted') return fsConnect(false); } catch(e){}
+  $('#fsBtn').textContent = '폴더 다시 연결';
+  SY.fs = 'perm'; updateSync(); armRegrant();
+})();
+
+// flip clock
+const digits = [...document.querySelectorAll('#clock .digit')];
+digits.forEach(d => {
+  d.innerHTML = '<div class="half up"><span></span></div><div class="half down"><span></span></div>'
+    + '<div class="half fl-up"><span></span></div><div class="half fl-down"><span></span></div>';
+  d.dataset.v = '';
+});
+const fvDigits = [...document.querySelectorAll('#fvClock .digit')];
+fvDigits.forEach(d => {
+  d.innerHTML = '<div class="half up"><span></span></div><div class="half down"><span></span></div>'
+    + '<div class="half fl-up"><span></span></div><div class="half fl-down"><span></span></div>';
+  d.dataset.v = '';
+});
+function fvFlip(t){ const s = String(t.getHours()).padStart(2,'0') + String(t.getMinutes()).padStart(2,'0'); fvDigits.forEach((d, i) => setDigit(d, s[i])); }
+function setDigit(d, v){
+  const old = d.dataset.v;
+  if (old === v) return;
+  const sp = c => d.querySelector('.' + c + ' span');
+  if (old === '') {
+    ['up','down','fl-up','fl-down'].forEach(c => sp(c).textContent = v);
+  } else {
+    sp('fl-up').textContent = old; sp('fl-down').textContent = v;
+    sp('up').textContent = v; sp('down').textContent = old;
+    d.classList.remove('flipping'); void d.offsetWidth; d.classList.add('flipping');
+    setTimeout(() => { sp('down').textContent = v; sp('fl-up').textContent = v; d.classList.remove('flipping'); }, 600);
+  }
+  d.dataset.v = v;
+}
+function tick(){
+  const n = new Date();
+  const t = String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0');
+  digits.forEach((d,i) => setDigit(d, t[i]));
+  applyActive(); updateLive(); updateFocus();
+}
+tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>
